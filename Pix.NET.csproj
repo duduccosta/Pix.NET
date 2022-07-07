@@ -1,16 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
-    <Nullable>enable</Nullable>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <Authors>Eduardo Carvalho Costa</Authors>
     <Company>Quality Systems</Company>
     <Product>$(AssemblyName) Lib</Product>
     <Description>Biblioteca para pix.</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>Qualitysys.Pix.NET</PackageId>
+    <Copyright>Todos os direitos reservados.</Copyright>
+    <PackageProjectUrl>https://qualitysys.com.br</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/duduccosta/Pix.NET</RepositoryUrl>
+    <PackageTags>pix</PackageTags>
+    <NeutralLanguage>pt-BR</NeutralLanguage>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
