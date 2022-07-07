@@ -17,11 +17,11 @@ A primeira coisa que deve-se atentar, é sobre a classe ***Model.ProvedorToken**
 Esta classe é do tipo **enum**, representando os bancos disponíveis com seus respectivos códigos:
 
 > NONE = 0,
-        SICOOB = 756,
-        Santander = 33,
-        BancoBrasil = 1,
-        Itau = 341,
-        Bradesco = 237
+> SICOOB = 756,
+> Santander = 33,
+> BancoBrasil = 1,
+> Itau = 341,
+> Bradesco = 237
 
 ## 1. Para iniciar o fluxo do código, precisamos definir qual banco será utilizado:
 
@@ -136,7 +136,9 @@ PixRecebidosPayload payload = new PixRecebidosPayload
 
 ## Créditos
 Autor: Eduardo Carvalho Costa
+
 Email: eduardoccosta@outlook.com
+
 Analista de sistemas: [Quality Systems](https://qualitysys.com.br)
 > 📝 **NOTE:** Dúvidas somente pelo GitHub
 
