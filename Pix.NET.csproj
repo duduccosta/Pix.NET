@@ -3,6 +3,10 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
+    <Authors>Eduardo Carvalho Costa</Authors>
+    <Company>Quality Systems</Company>
+    <Product>$(AssemblyName) Lib</Product>
+    <Description>Biblioteca para pix.</Description>
   </PropertyGroup>
 
   <ItemGroup>

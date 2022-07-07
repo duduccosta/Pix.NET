@@ -40,6 +40,26 @@ namespace PixNET.Services.Pix.Bancos
             }
             return null;
         }
+        public virtual PixPayload ConsultaCobranca(string txid)
+        {
+            GetAccessTokenAsync();
+            if (token != null)
+            {
+                List<string> headers = new List<string>();
+                headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
+                string request = Utils.sendRequest(endpoint.Pix + "cob/" + txid, "", "GET", headers, 0, "", false, _certificate);
+                PixPayload cobranca = null;
+                try
+                {
+                    cobranca = JsonConvert.DeserializeObject<PixPayload>(request);
+                    cobranca.textoImagemQRcode = GerarQrCode(cobranca);
+                }
+                catch { }
+                return cobranca;
+
+            }
+            return null;
+        }
         public virtual async Task<List<Model.Pix>> ConsultaPixRecebidosAsync()
         {
             List<Model.Pix> listaPix = new List<Model.Pix>();
@@ -74,6 +94,86 @@ namespace PixNET.Services.Pix.Bancos
                                 paginaAtual
                             );
                         request = await Utils.sendRequestAsync(endpoint.Pix + "pix?" + queryString, null, "GET", headers, 0, "application/json", false, _certificate);
+                        try
+                        {
+                            cobranca = JsonConvert.DeserializeObject<PixRecebidos>(request);
+                            listaPix.AddRange(cobranca.pix);
+
+                            if (
+                                cobranca.parametros.paginacao.paginaAtual + 1 < cobranca.parametros.paginacao.quantidadeDePaginas &&
+                                cobranca.parametros.paginacao.quantidadeTotalDeItens > listaPix.Count)
+                            {
+                                paginaAtual = cobranca.parametros.paginacao.paginaAtual + 1;
+                                continue;
+                            }
+                            else
+                            {
+                                loop = false;
+                                break;
+                            }
+                        }
+                        catch
+                        {
+                            loop = false;
+                            break;
+                        }
+                    }
+
+                    return listaPix;
+
+                }
+                return null;
+            }
+            catch (WebException ex)
+            {
+                try
+                {
+                    PixError er = JsonConvert.DeserializeObject<PixError>(ex.Message);
+                    if (er != null)
+                    {
+                        if (er.erros.Find(T => T.codigo == "4769515") != null)
+                            return listaPix;
+                    }
+                }
+                catch { }
+                throw ex;
+            }
+        }
+
+        public virtual List<Model.Pix> ConsultaPixRecebidos()
+        {
+            List<Model.Pix> listaPix = new List<Model.Pix>();
+
+            try
+            {
+                GetAccessTokenAsync();
+                if (token != null)
+                {
+                    string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
+                    {
+                        NullValueHandling = NullValueHandling.Ignore
+                    });
+
+                    List<string> headers = new List<string>();
+                    headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
+                    int
+                        paginaAtual = 0;
+
+                    string request = null;
+
+                    bool loop = true;
+
+                    PixRecebidos cobranca = null;
+                    while (loop)
+                    {
+                        string queryString = string.Format
+                            (
+                                "inicio={0}&fim={1}&paginaAtual={2}",
+                                ((PixRecebidosPayload)_payload).inicio.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                                ((PixRecebidosPayload)_payload).fim.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                                paginaAtual
+                            );
+                        request = Utils.sendRequest(endpoint.Pix + "pix?" + queryString, null, "GET", headers, 0, "application/json", false, _certificate);
                         try
                         {
                             cobranca = JsonConvert.DeserializeObject<PixRecebidos>(request);

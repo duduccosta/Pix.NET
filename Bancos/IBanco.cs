@@ -18,6 +18,8 @@ namespace PixNET.Services.Pix.Bancos
         PixPayload CreateCobranca();
         Task<PixPayload> CreateCobrancaAsync();
         Task<PixPayload> ConsultaCobrancaAsync(string txid);
+        PixPayload ConsultaCobranca(string txid);
         Task<List<Model.Pix>> ConsultaPixRecebidosAsync();
+        List<Model.Pix> ConsultaPixRecebidos();
     }
 }

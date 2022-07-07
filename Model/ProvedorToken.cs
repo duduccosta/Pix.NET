@@ -15,10 +15,4 @@ namespace PixNET.Model
         Itau = 341,
         Bradesco = 237
     }
-
-    public enum TipoApi
-    {
-        Boleto = 0,
-        Pix = 1
-    }
 }
