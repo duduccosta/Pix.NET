@@ -42,7 +42,7 @@ namespace PixNET.Services.Pix.Bancos
         }
         public virtual PixPayload ConsultaCobranca(string txid)
         {
-            GetAccessTokenAsync();
+            GetAccessToken();
             if (token != null)
             {
                 List<string> headers = new List<string>();
@@ -146,7 +146,7 @@ namespace PixNET.Services.Pix.Bancos
 
             try
             {
-                GetAccessTokenAsync();
+                GetAccessToken();
                 if (token != null)
                 {
                     string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
