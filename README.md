@@ -1,7 +1,7 @@
 ﻿# Seja bem vindo ao PIX.NET!
 
 Esta biblioteca foi desenvolvida com o intuito de auxiliar na implementação de PIX em aplicações .NET.
-Baseada em .NET Standard para que possa funcionar com qualquer versão do .NET.
+Baseada em .NETStandard 2.0 para que possa funcionar com qualquer versão do .NET.
 
 # Dependências
  1. Newtonsoft (13.0.1) - Biblioteca para trabalhar com JSON.
