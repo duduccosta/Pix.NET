@@ -138,7 +138,7 @@ PixRecebidosPayload payload = new PixRecebidosPayload
 - Autor: Eduardo Carvalho Costa
 - Email: eduardoccosta@outlook.com
 - Analista de sistemas: [Quality Systems](https://qualitysys.com.br)
-> :exclamation: **NOTE:** Dúvidas somente pelo GitHub
+> :exclamation: **Dúvidas somente pelo GitHub**
 
 ## Licença
 MIT
