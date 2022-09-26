@@ -361,7 +361,10 @@ namespace PixNET.Services.Pix.Bancos
         }
         public void SetCidade(string cidade)
         {
-            this.cidade = Utils.RemoverAcentos(cidade).ToUpper();
+            var _cidade = cidade;
+            if (_cidade.Length > 15)
+                _cidade = _cidade.Substring(0, 15);
+            this.cidade = Utils.RemoverAcentos(_cidade).ToUpper();
         }
         public void SetCredentials(Credentials credentials)
         {
@@ -369,7 +372,10 @@ namespace PixNET.Services.Pix.Bancos
         }
         public void SetNomeRazaoSocial(string nome)
         {
-            nomeRazaoSocial = Utils.RemoverAcentos(nome).ToUpper();
+            var _nome = nome;
+            if (_nome.Length > 25)
+                _nome = _nome.Substring(0, 25);
+            nomeRazaoSocial = Utils.RemoverAcentos(_nome).ToUpper();
         }
         public void SetPayload(BasePayload payload)
         {

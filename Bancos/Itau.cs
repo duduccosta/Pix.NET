@@ -100,16 +100,17 @@ namespace PixNET.Services.Pix.Bancos
                     error += errors.title + Environment.NewLine;
                     error += errors.detail + Environment.NewLine;
                     int i = 1;
-                    foreach (var item in errors.violacoes)
-                    {
-                        error += $"Erro {i}:" + Environment.NewLine;
-                        error += $"\tPropriedade: {item.propriedade}{Environment.NewLine}";
-                        error += $"\tRazao: {item.razao}{Environment.NewLine}";
-                        error += $"\tValor: {item.valor}{Environment.NewLine}";
-                        if (i < errors.violacoes.Count)
-                            error += $"{Environment.NewLine}----------------{Environment.NewLine}";
-                        i++;
-                    }
+                    if (errors.violacoes != null)
+                        foreach (var item in errors.violacoes)
+                        {
+                            error += $"Erro {i}:" + Environment.NewLine;
+                            error += $"\tPropriedade: {item.propriedade}{Environment.NewLine}";
+                            error += $"\tRazao: {item.razao}{Environment.NewLine}";
+                            error += $"\tValor: {item.valor}{Environment.NewLine}";
+                            if (i < errors.violacoes.Count)
+                                error += $"{Environment.NewLine}----------------{Environment.NewLine}";
+                            i++;
+                        }
                     throw new Exception(error);
                 }
 

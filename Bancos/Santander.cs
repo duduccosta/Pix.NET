@@ -21,7 +21,7 @@ namespace PixNET.Services.Pix.Bancos
         public override async Task GetAccessTokenAsync(bool force = false)
         {
 
-            string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write";
+            string parameters = $"grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write&client_id={_credentials.clientId}&client_secret={_credentials.clientSecret}";
             List<string> headers = new List<string>();
 
             headers.Add(string.Format("Authorization: Basic {0}", Utils.Base64Encode(_credentials.clientId + ":" + _credentials.clientSecret)));
@@ -39,14 +39,10 @@ namespace PixNET.Services.Pix.Bancos
 
         public override void GetAccessToken(bool force = false)
         {
-            string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write";
+            string parameters = $"grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write&client_id={_credentials.clientId}&client_secret={_credentials.clientSecret}";
             List<string> headers = new List<string>();
 
-            headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
             headers.Add(string.Format("Authorization: Basic {0}", Utils.Base64Encode(_credentials.clientId + ":" + _credentials.clientSecret)));
-            parameters += $"client_id={_credentials.clientId}&client_secret={_credentials.clientSecret}";
-
-
             string
                 request = Utils.sendRequest(endpoint.AuthorizationToken + "?grant_type=client_credentials", parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate);
 
@@ -86,22 +82,31 @@ namespace PixNET.Services.Pix.Bancos
                 }
                 catch (Exception ex)
                 {
-                    Model.Errors.Itau.Errors errors = JsonConvert.DeserializeObject<Model.Errors.Itau.Errors>(ex.Message);
+                    Model.Errors.Santander.Errors errors = JsonConvert.DeserializeObject<Model.Errors.Santander.Errors>(ex.Message);
 
                     string error = String.Empty;
-                    error += errors.title + Environment.NewLine;
-                    error += errors.detail + Environment.NewLine;
+                    if (!String.IsNullOrEmpty(errors.title))
+                        error = (error.Length > 0 ? Environment.NewLine : "") + errors.title;
+                    if (!String.IsNullOrEmpty(errors.detail))
+                        error = (error.Length > 0 ? Environment.NewLine :  "") + errors.detail;
                     int i = 1;
-                    foreach (var item in errors.violacoes)
+
+                    if (errors.violacoes != null)
                     {
-                        error += $"Erro {i}:" + Environment.NewLine;
-                        error += $"\tPropriedade: {item.propriedade}{Environment.NewLine}";
-                        error += $"\tRazao: {item.razao}{Environment.NewLine}";
-                        error += $"\tValor: {item.valor}{Environment.NewLine}";
-                        if (i < errors.violacoes.Count)
-                            error += $"{Environment.NewLine}----------------{Environment.NewLine}";
-                        i++;
+                        error = (error.Length > 0 ? Environment.NewLine : "");
+
+                        foreach (var item in errors.violacoes)
+                        {
+                            error += $"Erro {i}:" + Environment.NewLine;
+                            error += $"\tPropriedade: {item.propriedade}{Environment.NewLine}";
+                            error += $"\tRazao: {item.razao}{Environment.NewLine}";
+                            error += $"\tValor: {item.valor}{Environment.NewLine}";
+                            if (i < errors.violacoes.Count)
+                                error += $"{Environment.NewLine}----------------{Environment.NewLine}";
+                            i++;
+                        }
                     }
+                    
                     throw new Exception(error);
                 }
 
