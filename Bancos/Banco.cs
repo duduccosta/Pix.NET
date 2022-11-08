@@ -168,7 +168,7 @@ namespace PixNET.Services.Pix.Bancos
                     {
                         string queryString = string.Format
                             (
-                                "inicio={0}&fim={1}&paginaAtual={2}",
+                                "txIdPresente=true&inicio={0}&fim={1}&paginaAtual={2}",
                                 ((PixRecebidosPayload)_payload).inicio.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                                 ((PixRecebidosPayload)_payload).fim.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                                 paginaAtual
@@ -275,6 +275,33 @@ namespace PixNET.Services.Pix.Bancos
             }
             return null;
         }
+        public virtual async Task<PixDevolucao> DevolverPixAsync()
+        {
+            await GetAccessTokenAsync();
+            if (token != null)
+            {
+                string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
+                List<string> headers = new List<string>();
+                headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
+                string request = await Utils.sendRequestAsync(endpoint.Pix + $"pix/{((PixDevolucaoPayload)_payload).e2eid}/devolucao/{((PixDevolucaoPayload)_payload).id}", parameters, "PUT", headers, 0, "application/json", true, _certificate);
+                PixDevolucao devolucao = null;
+
+                try
+                {
+                    devolucao = JsonConvert.DeserializeObject<PixDevolucao>(request);
+                }
+                catch { }
+
+                token = null;
+                request = null;
+                return devolucao;
+
+            }
+            return null;
+        }
         public virtual void GetAccessToken(bool force = false)
         {
             string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write";
@@ -323,8 +350,17 @@ namespace PixNET.Services.Pix.Bancos
             payloadQrCode.Append("5303986");
             payloadQrCode.Append($"54{cobranca.valor.original.Length.ToString().PadLeft(2, '0')}{cobranca.valor.original}");
             payloadQrCode.Append("5802BR");
-            payloadQrCode.Append($"59{nomeRazaoSocial.Length.ToString().PadLeft(2, '0')}{nomeRazaoSocial}");
-            payloadQrCode.Append($"60{cidade.Length.ToString().PadLeft(2, '0')}{cidade}");
+
+            if (!String.IsNullOrEmpty(nomeRazaoSocial))
+                payloadQrCode.Append($"59{nomeRazaoSocial.Length.ToString().PadLeft(2, '0')}{nomeRazaoSocial}");
+            else
+                payloadQrCode.Append($"5900");
+
+            if (!String.IsNullOrEmpty(cidade))
+                payloadQrCode.Append($"60{cidade.Length.ToString().PadLeft(2, '0')}{cidade}");
+            else
+                payloadQrCode.Append($"6000");
+
             payloadQrCode.Append("6207");
             payloadQrCode.Append("0503***");
             payloadQrCode.Append("6304");
@@ -362,9 +398,12 @@ namespace PixNET.Services.Pix.Bancos
         public void SetCidade(string cidade)
         {
             var _cidade = cidade;
-            if (_cidade.Length > 15)
-                _cidade = _cidade.Substring(0, 15);
-            this.cidade = Utils.RemoverAcentos(_cidade).ToUpper();
+            if (!String.IsNullOrEmpty(_cidade))
+            {
+                if (_cidade.Length > 15)
+                    _cidade = _cidade.Substring(0, 15);
+                this.cidade = Utils.RemoverAcentos(_cidade).ToUpper();
+            }
         }
         public void SetCredentials(Credentials credentials)
         {
@@ -373,9 +412,12 @@ namespace PixNET.Services.Pix.Bancos
         public void SetNomeRazaoSocial(string nome)
         {
             var _nome = nome;
-            if (_nome.Length > 25)
-                _nome = _nome.Substring(0, 25);
-            nomeRazaoSocial = Utils.RemoverAcentos(_nome).ToUpper();
+            if (!String.IsNullOrEmpty(_nome))
+            {
+                if (_nome.Length > 25)
+                    _nome = _nome.Substring(0, 25);
+                nomeRazaoSocial = Utils.RemoverAcentos(_nome).ToUpper();
+            }
         }
         public void SetPayload(BasePayload payload)
         {

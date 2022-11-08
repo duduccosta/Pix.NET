@@ -14,4 +14,11 @@ namespace PixNET.Model
         public string nomeRazaoSocial { get; set; }
         public List<InfoAdicionais> infoAdicionais { get; set; }
     }
+
+    public class PixDevolucaoRequest: BaseRequest
+    {
+        public string e2eid { get; set; }
+        public string id { get; set; }
+        public double valor { get; set; }
+    }
 }

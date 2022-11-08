@@ -131,6 +131,7 @@ namespace PixNET.Model
         public DateTime horario { get; set; }
         public string infoPagador { get; set; }
         public Pagador pagador { get; set; }
+        public List<PixDevolucao> devolucoes { get; set; }
     }
 
     public class PixRecebidosParametros
@@ -153,11 +154,32 @@ namespace PixNET.Model
         public List<Erros> erros { get; set; }
     }
 
+    public class PixDevolucao
+    {
+        public string id { get; set; }
+        public string rtrId { get; set; }
+        public string valor { get; set; }
+        public Horario horario { get; set; }
+        public string status { get; set; }
+    }
+    public class Horario
+    {
+        public DateTime solicitacao { get; set; }
+    }
+
+
     public class Erros
     {
         public string codigo { get; set; }
         public string versao { get; set; }
         public string mensagem { get; set; }
         public string ocorrencia { get; set; }
+    }
+
+    public class PixDevolucaoPayload : BasePayload
+    {
+        public string e2eid { get; set; }
+        public string id { get; set; }
+        public double valor { get; set; }
     }
 }

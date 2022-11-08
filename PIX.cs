@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using PixNET.Model;
+using PixNET.Services.Pix.Bancos;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -60,6 +61,13 @@ namespace PixNET.Services.Pix
             banco.SetCredentials(credentials);
             banco.SetCertificateFile(certificate, password);
         }
+
+        public PIX(ProvedorToken psp, Banco banco)
+        {
+            _psp = psp;
+            this.banco = banco;
+        }
+
         public void SetPayload(BasePayload payload)
         {
             banco.SetPayload(payload);
@@ -88,6 +96,10 @@ namespace PixNET.Services.Pix
         {
             return await banco.CreateCobrancaAsync();
         }
+        public PixPayload CreateCobranca()
+        {
+            return banco.CreateCobranca();
+        }
         public async Task<PixPayload> ConsultaCobrancaAsync(string txid)
         {
             return await banco.ConsultaCobrancaAsync(txid);
@@ -96,11 +108,15 @@ namespace PixNET.Services.Pix
         {
             return await banco.ConsultaPixRecebidosAsync();
         }
+        public async Task<Model.PixDevolucao> DevolverPixAsync()
+        {
+            return await banco.DevolverPixAsync();
+        }
         private void SetEndPoint(PixAmbiente? ambiente)
         {
             switch (_psp)
             {
-                case ProvedorToken.Itau:
+                case ProvedorToken.ITAU:
                     {
 
                         banco = new Bancos.Itau(ambiente);
@@ -119,7 +135,7 @@ namespace PixNET.Services.Pix
                         break;
                     }
 
-                case ProvedorToken.Bradesco:
+                case ProvedorToken.BRADESCO:
                     {
                         banco = new Bancos.Bradesco(ambiente);
 

@@ -10,9 +10,10 @@ namespace PixNET.Model
     {
         NONE = 0,
         SICOOB = 756,
+        ITAU = 341,
+        BRADESCO = 237, 
         Santander = 33,
         BancoBrasil = 1,
-        Itau = 341,
-        Bradesco = 237
+        CaixaCEF = 104,
     }
 }
