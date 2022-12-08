@@ -302,6 +302,36 @@ namespace PixNET.Services.Pix.Bancos
             }
             return null;
         }
+        public virtual async Task<PixPayload> CancelarPixAsync()
+        {
+            //REMOVIDA_PELO_USUARIO_RECEBEDOR
+            await GetAccessTokenAsync();
+            if (token != null)
+            {
+                ((PixPayload)_payload).status = "REMOVIDA_PELO_USUARIO_RECEBEDOR";
+                string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
+                List<string> headers = new List<string>();
+                headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
+                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate);
+                PixPayload cobranca = null;
+
+                try
+                {
+                    cobranca = JsonConvert.DeserializeObject<PixPayload>(request);
+                    cobranca.textoImagemQRcode = GerarQrCode(cobranca);
+                }
+                catch { }
+
+                token = null;
+                request = null;
+                return cobranca;
+
+            }
+            return null;
+        }
         public virtual void GetAccessToken(bool force = false)
         {
             string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write";

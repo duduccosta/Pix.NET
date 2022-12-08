@@ -17,6 +17,7 @@ namespace PixNET.Services.Pix.Bancos
         void SetCidade(string cidade);
         PixPayload CreateCobranca();
         Task<PixPayload> CreateCobrancaAsync();
+        Task<PixPayload> CancelarPixAsync();
         Task<PixPayload> ConsultaCobrancaAsync(string txid);
         PixPayload ConsultaCobranca(string txid);
         Task<List<Model.Pix>> ConsultaPixRecebidosAsync();

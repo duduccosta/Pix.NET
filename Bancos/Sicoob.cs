@@ -87,6 +87,37 @@ namespace PixNET.Services.Pix.Bancos
             }
             return null;
         }
+        public override async Task<PixPayload> CancelarPixAsync()
+        {
+            await GetAccessTokenAsync();
+            if (token != null)
+            {
+                ((PixPayload)_payload).status = "REMOVIDA_PELO_USUARIO_RECEBEDOR";
+
+                string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
+                List<string> headers = new List<string>();
+                headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
+                headers.Add(string.Format("client_id: {0}", _credentials.clientId));
+                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate);
+                PixPayload cobranca = null;
+
+                try
+                {
+                    cobranca = JsonConvert.DeserializeObject<PixPayload>(request);
+                    cobranca.textoImagemQRcode = GerarQrCode(cobranca);
+                }
+                catch { }
+
+                token = null;
+                request = null;
+                return cobranca;
+
+            }
+            return null;
+        }
         public override PixPayload CreateCobranca()
         {
             GetAccessToken();

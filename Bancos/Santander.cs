@@ -88,7 +88,7 @@ namespace PixNET.Services.Pix.Bancos
                     if (!String.IsNullOrEmpty(errors.title))
                         error = (error.Length > 0 ? Environment.NewLine : "") + errors.title;
                     if (!String.IsNullOrEmpty(errors.detail))
-                        error = (error.Length > 0 ? Environment.NewLine :  "") + errors.detail;
+                        error = (error.Length > 0 ? Environment.NewLine : "") + errors.detail;
                     int i = 1;
 
                     if (errors.violacoes != null)
@@ -106,7 +106,80 @@ namespace PixNET.Services.Pix.Bancos
                             i++;
                         }
                     }
-                    
+
+                    throw new Exception(error);
+                }
+
+                PixPayload cobranca = null;
+
+                try
+                {
+                    cobranca = JsonConvert.DeserializeObject<PixPayload>(request);
+                    cobranca.textoImagemQRcode = GerarQrCode(cobranca);
+                }
+                catch { }
+
+                token = null;
+                request = null;
+                return cobranca;
+
+            }
+            return null;
+        }
+        public override async Task<PixPayload> CancelarPixAsync()
+        {
+            await GetAccessTokenAsync();
+            if (token != null)
+            {
+
+                List<string> headers = new List<string>();
+                headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
+                ((PixPayload)_payload).status = "REMOVIDA_PELO_USUARIO_RECEBEDOR";
+
+                if (
+                    ((PixPayload)_payload).infoAdicionais == null ||
+                    (((PixPayload)_payload).infoAdicionais != null && ((PixPayload)_payload).infoAdicionais.Count == 0)
+                    )
+                    ((PixPayload)_payload).infoAdicionais = null;
+
+                string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
+
+                string request = null;
+
+                try
+                {
+                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate);
+                }
+                catch (Exception ex)
+                {
+                    Model.Errors.Santander.Errors errors = JsonConvert.DeserializeObject<Model.Errors.Santander.Errors>(ex.Message);
+
+                    string error = String.Empty;
+                    if (!String.IsNullOrEmpty(errors.title))
+                        error = (error.Length > 0 ? Environment.NewLine : "") + errors.title;
+                    if (!String.IsNullOrEmpty(errors.detail))
+                        error = (error.Length > 0 ? Environment.NewLine : "") + errors.detail;
+                    int i = 1;
+
+                    if (errors.violacoes != null)
+                    {
+                        error = (error.Length > 0 ? Environment.NewLine : "");
+
+                        foreach (var item in errors.violacoes)
+                        {
+                            error += $"Erro {i}:" + Environment.NewLine;
+                            error += $"\tPropriedade: {item.propriedade}{Environment.NewLine}";
+                            error += $"\tRazao: {item.razao}{Environment.NewLine}";
+                            error += $"\tValor: {item.valor}{Environment.NewLine}";
+                            if (i < errors.violacoes.Count)
+                                error += $"{Environment.NewLine}----------------{Environment.NewLine}";
+                            i++;
+                        }
+                    }
+
                     throw new Exception(error);
                 }
 

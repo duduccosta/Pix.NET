@@ -163,6 +163,47 @@ namespace PixNET.Services.Pix.Bancos
             }
             return null;
         }
+        public override async Task<PixPayload> CancelarPixAsync()
+        {
+            await GetAccessTokenAsync();
+            if (token != null)
+            {
+                ((PixPayload)_payload).status = "REMOVIDA_PELO_USUARIO_RECEBEDOR";
+                string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
+                List<string> headers = new List<string>();
+
+                headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
+                headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
+                string request = null;
+                try
+                {
+                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate);
+                }
+                catch (Exception ex)
+                {
+                    Model.Errors.BancoBrasil.Errors error = JsonConvert.DeserializeObject<Model.Errors.BancoBrasil.Errors>(ex.Message);
+                    string errors = String.Join(Environment.NewLine, error.erros.Select(T => T.mensagem).ToArray());
+                    throw new Exception(errors);
+                }
+                PixPayload cobranca = null;
+
+                try
+                {
+                    cobranca = JsonConvert.DeserializeObject<PixPayload>(request);
+                    cobranca.textoImagemQRcode = GerarQrCode(cobranca);
+                }
+                catch { }
+
+                token = null;
+                request = null;
+                return cobranca;
+
+            }
+            return null;
+        }
         public override async Task<List<Model.Pix>> ConsultaPixRecebidosAsync()
         {
             List<Model.Pix> listaPix = new List<Model.Pix>();

@@ -104,6 +104,11 @@ namespace PixNET.Services.Pix
         {
             return await banco.ConsultaCobrancaAsync(txid);
         }
+
+        public async Task<PixPayload> CancelarPixAsync()
+        {
+            return await banco.CancelarPixAsync();
+        }
         public async Task<List<Model.Pix>> ConsultaPixRecebidosAsync()
         {
             return await banco.ConsultaPixRecebidosAsync();

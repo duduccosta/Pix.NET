@@ -59,19 +59,25 @@ namespace PixNET
                     request.ServicePoint.Expect100Continue = false;
                     request.ProtocolVersion = HttpVersion.Version10;
 
-                    if (method == "POST" || method == "PUT")
+                    switch (method)
                     {
-                        var data = Encoding.ASCII.GetBytes(postData);
-                        if (String.IsNullOrEmpty(ContentType))
-                            request.ContentType = "application/x-www-form-urlencoded";
-                        else
-                            request.ContentType = ContentType;
+                        case "POST":
+                        case "PUT":
+                        case "PATCH":
+                            {
 
-                        request.ContentLength = data.Length;
-                        using (var stream = request.GetRequestStream())
-                            stream.Write(data, 0, data.Length);
+                                var data = Encoding.ASCII.GetBytes(postData);
+                                if (String.IsNullOrEmpty(ContentType))
+                                    request.ContentType = "application/x-www-form-urlencoded";
+                                else
+                                    request.ContentType = ContentType;
+
+                                request.ContentLength = data.Length;
+                                using (var stream = request.GetRequestStream())
+                                    stream.Write(data, 0, data.Length);
+                                break;
+                            }
                     }
-                    else { }
 
                     try
                     {
@@ -151,21 +157,26 @@ namespace PixNET
 
                     request.ServicePoint.Expect100Continue = false;
                     request.ProtocolVersion = HttpVersion.Version10;
-
-                    if (method == "POST" || method == "PUT")
+                    switch (method)
                     {
-                        var data = Encoding.ASCII.GetBytes(postData);
-                        if (String.IsNullOrEmpty(ContentType))
-                            request.ContentType = "application/x-www-form-urlencoded";
-                        else
-                            request.ContentType = ContentType;
+                        case "POST":
+                        case "PUT":
+                        case "PATCH":
+                            {
 
-                        request.ContentLength = data.Length;
-                        using (var stream = await request.GetRequestStreamAsync())
-                            await stream.WriteAsync(data, 0, data.Length);
+                                var data = Encoding.ASCII.GetBytes(postData);
+                                if (String.IsNullOrEmpty(ContentType))
+                                    request.ContentType = "application/x-www-form-urlencoded";
+                                else
+                                    request.ContentType = ContentType;
+
+                                request.ContentLength = data.Length;
+                                using (var stream = await request.GetRequestStreamAsync())
+                                    await stream.WriteAsync(data, 0, data.Length);
+                                break;
+                            }
                     }
-                    else { }
-
+                  
                     try
                     {
                         response = await request.GetResponseAsync() as HttpWebResponse;

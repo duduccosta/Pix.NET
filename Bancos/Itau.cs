@@ -269,5 +269,78 @@ namespace PixNET.Services.Pix.Bancos
                 throw ex;
             }
         }
+        public override async Task<PixPayload> CancelarPixAsync()
+        {
+            await GetAccessTokenAsync();
+            if (token != null)
+            {
+
+                List<string> headers = new List<string>
+                {
+                    $"x-itau-apikey: {_credentials.clientId}",
+                    $"x-itau-correlationID: {Guid.NewGuid()}",
+                    $"x-itau-flowID: {Guid.NewGuid()}",
+                    string.Format("Authorization: Bearer {0}", token.access_token)
+                };
+                ((PixPayload)_payload).status = "REMOVIDA_PELO_USUARIO_RECEBEDOR";
+                ((PixPayload)_payload).calendario = null;
+                ((PixPayload)_payload).devedor = null;
+                ((PixPayload)_payload).valor = null;
+                ((PixPayload)_payload).chave = null;
+                ((PixPayload)_payload).solicitacaoPagador = null;
+                if (
+                    ((PixPayload)_payload).infoAdicionais == null ||
+                    (((PixPayload)_payload).infoAdicionais != null && ((PixPayload)_payload).infoAdicionais.Count == 0)
+                    )
+                    ((PixPayload)_payload).infoAdicionais = null;
+
+                string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
+
+                string request;
+                try
+                {
+                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate);
+                }
+                catch (Exception ex)
+                {
+                    Model.Errors.Itau.Errors errors = JsonConvert.DeserializeObject<Model.Errors.Itau.Errors>(ex.Message);
+
+                    string error = String.Empty;
+                    error += errors.title + Environment.NewLine;
+                    error += errors.detail + Environment.NewLine;
+                    int i = 1;
+                    if (errors.violacoes != null)
+                        foreach (var item in errors.violacoes)
+                        {
+                            error += $"Erro {i}:" + Environment.NewLine;
+                            error += $"\tPropriedade: {item.propriedade}{Environment.NewLine}";
+                            error += $"\tRazao: {item.razao}{Environment.NewLine}";
+                            error += $"\tValor: {item.valor}{Environment.NewLine}";
+                            if (i < errors.violacoes.Count)
+                                error += $"{Environment.NewLine}----------------{Environment.NewLine}";
+                            i++;
+                        }
+                    throw new Exception(error);
+                }
+
+                PixPayload cobranca = null;
+
+                try
+                {
+                    cobranca = JsonConvert.DeserializeObject<PixPayload>(request);
+                    cobranca.textoImagemQRcode = GerarQrCode(cobranca);
+                }
+                catch { }
+
+                token = null;
+                request = null;
+                return cobranca;
+
+            }
+            return null;
+        }
     }
 }
