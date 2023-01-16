@@ -30,7 +30,7 @@ namespace PixNET
                         parametros = parametros + (!String.IsNullOrEmpty(parametros) ? @"&" : null) + @"cache=" + DateTime.Now.Ticks.ToString();
 
                     Boolean verificaConexao = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
-                    if (method == "GET")
+                    if (method == "GET" && !String.IsNullOrEmpty(postData))
                         url += "?" + postData;
                     else { }
 
@@ -129,7 +129,7 @@ namespace PixNET
                         parametros = parametros + (!String.IsNullOrEmpty(parametros) ? @"&" : null) + @"cache=" + DateTime.Now.Ticks.ToString();
 
                     Boolean verificaConexao = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
-                    if (method == "GET")
+                    if (method == "GET" && !String.IsNullOrEmpty(postData))
                         url += "?" + postData;
                     else { }
 

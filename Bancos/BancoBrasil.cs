@@ -234,7 +234,7 @@ namespace PixNET.Services.Pix.Bancos
                     {
                         string queryString = string.Format
                             (
-                                "txIdPresente=true&inicio={0}&fim={1}&paginaAtual={2}",
+                                "txIdPresente=true&inicio={0}&fim={1}&paginaAtual={2}&paginacao.paginaAtual={2}",
                                 ((PixRecebidosPayload)_payload).inicio.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                                 ((PixRecebidosPayload)_payload).fim.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                                 paginaAtual
