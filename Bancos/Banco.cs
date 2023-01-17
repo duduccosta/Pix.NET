@@ -2,6 +2,7 @@
 using PixNET.Model;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -20,6 +21,7 @@ namespace PixNET.Services.Pix.Bancos
         internal X509Certificate2Collection _certificate = null;
         internal string nomeRazaoSocial = null;
         internal string cidade = null;
+        internal bool hasTxId = false;
         public virtual async Task<PixPayload> ConsultaCobrancaAsync(string txid)
         {
             await GetAccessTokenAsync();
@@ -97,7 +99,10 @@ namespace PixNET.Services.Pix.Bancos
                         try
                         {
                             cobranca = JsonConvert.DeserializeObject<PixRecebidos>(request);
-                            listaPix.AddRange(cobranca.pix);
+                            if (hasTxId)
+                                listaPix.AddRange(cobranca.pix.Where(T => !String.IsNullOrEmpty(T.txid)));
+                            else
+                                listaPix.AddRange(cobranca.pix);
 
                             if (
                                 cobranca.parametros.paginacao.paginaAtual + 1 < cobranca.parametros.paginacao.quantidadeDePaginas &&
@@ -452,6 +457,10 @@ namespace PixNET.Services.Pix.Bancos
         public void SetPayload(BasePayload payload)
         {
             _payload = payload;
+        }
+        public void SetHasTxId(bool hasTxId)
+        {
+            this.hasTxId = hasTxId;
         }
 
     }

@@ -2,6 +2,7 @@
 using PixNET.Model;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -208,7 +209,10 @@ namespace PixNET.Services.Pix.Bancos
                         try
                         {
                             cobranca = JsonConvert.DeserializeObject<PixRecebidos>(request);
-                            listaPix.AddRange(cobranca.pix);
+                            if (hasTxId)
+                                listaPix.AddRange(cobranca.pix.Where(T => !String.IsNullOrEmpty(T.txid)));
+                            else
+                                listaPix.AddRange(cobranca.pix);
 
                             if (
                                 cobranca.parametros.paginacao.paginaAtual + 1 < cobranca.parametros.paginacao.quantidadeDePaginas &&
