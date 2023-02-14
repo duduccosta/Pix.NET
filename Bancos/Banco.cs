@@ -22,6 +22,7 @@ namespace PixNET.Services.Pix.Bancos
         internal string nomeRazaoSocial = null;
         internal string cidade = null;
         internal bool hasTxId = false;
+        internal int timeOut = 0;
         public virtual async Task<PixPayload> ConsultaCobrancaAsync(string txid)
         {
             await GetAccessTokenAsync();
@@ -95,7 +96,7 @@ namespace PixNET.Services.Pix.Bancos
                                 ((PixRecebidosPayload)_payload).fim.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                                 paginaAtual
                             );
-                        request = await Utils.sendRequestAsync(endpoint.Pix + "pix?" + queryString, null, "GET", headers, 0, "application/json", false, _certificate);
+                        request = await Utils.sendRequestAsync(endpoint.Pix + "pix?" + queryString, null, "GET", headers, this.timeOut, "application/json", false, _certificate);
                         try
                         {
                             cobranca = JsonConvert.DeserializeObject<PixRecebidos>(request);
@@ -457,6 +458,11 @@ namespace PixNET.Services.Pix.Bancos
         public void SetPayload(BasePayload payload)
         {
             _payload = payload;
+        }
+
+        public void SetTimeout(int timeout)
+        {
+            this.timeOut = timeout;
         }
         public void SetHasTxId(bool hasTxId)
         {

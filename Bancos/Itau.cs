@@ -31,7 +31,7 @@ namespace PixNET.Services.Pix.Bancos
 
 
             string
-                request = await Utils.sendRequestAsync(endpoint.AuthorizationToken, parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate);
+                request = await Utils.sendRequestAsync(endpoint.AuthorizationToken, parameters, "POST", headers, this.timeOut, "application/x-www-form-urlencoded", true, _certificate);
 
             try
             {
@@ -53,7 +53,7 @@ namespace PixNET.Services.Pix.Bancos
 
 
             string
-                request = Utils.sendRequest(endpoint.AuthorizationToken, parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate);
+                request = Utils.sendRequest(endpoint.AuthorizationToken, parameters, "POST", headers, this.timeOut, "application/x-www-form-urlencoded", true, _certificate);
 
             try
             {
@@ -91,7 +91,7 @@ namespace PixNET.Services.Pix.Bancos
 
                 try
                 {
-                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, 0, "application/json", true, _certificate);
+                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, this.timeOut, "application/json", true, _certificate);
                 }
                 catch (Exception ex)
                 {
@@ -146,7 +146,7 @@ namespace PixNET.Services.Pix.Bancos
                 headers.Add($"x-itau-correlationID: {Guid.NewGuid()}");
                 headers.Add($"x-itau-flowID: {Guid.NewGuid()}");
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
-                string request = Utils.sendRequest(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, 0, "application/json", true, _certificate);
+                string request = Utils.sendRequest(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, this.timeOut, "application/json", true, _certificate);
                 PixPayload cobranca = null;
 
                 try
@@ -174,7 +174,7 @@ namespace PixNET.Services.Pix.Bancos
                 headers.Add($"x-itau-correlationID: {Guid.NewGuid()}");
                 headers.Add($"x-itau-flowID: {Guid.NewGuid()}");
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
-                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + txid, "", "GET", headers, 0, "", false, _certificate);
+                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + txid, "", "GET", headers, this.timeOut, "", false, _certificate);
                 PixPayload cobranca = null;
                 try
                 {
@@ -224,7 +224,7 @@ namespace PixNET.Services.Pix.Bancos
                                 ((PixRecebidosPayload)_payload).fim.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                                 paginaAtual
                             );
-                        request = await Utils.sendRequestAsync(endpoint.Pix + "pix?" + queryString, null, "GET", headers, 0, "application/json", false, _certificate);
+                        request = await Utils.sendRequestAsync(endpoint.Pix + "pix?" + queryString, null, "GET", headers, this.timeOut, "application/json", false, _certificate);
                         try
                         {
                             cobranca = JsonConvert.DeserializeObject<PixRecebidos>(request);
@@ -307,7 +307,7 @@ namespace PixNET.Services.Pix.Bancos
                 string request;
                 try
                 {
-                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate);
+                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, this.timeOut, "application/json", true, _certificate);
                 }
                 catch (Exception ex)
                 {

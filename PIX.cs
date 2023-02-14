@@ -61,7 +61,7 @@ namespace PixNET.Services.Pix
             banco.SetCredentials(credentials);
             banco.SetCertificateFile(certificate, password);
         }
-        public PIX(BasePayload payload, Credentials credentials, ProvedorToken psp, byte[] certificate = null, string password = null, PixAmbiente? ambiente = null, bool hasTxId = false)
+        public PIX(BasePayload payload, Credentials credentials, ProvedorToken psp, byte[] certificate = null, string password = null, PixAmbiente? ambiente = null, bool hasTxId = false, int timeOut = 0)
         {
             _psp = psp;
             SetEndPoint(ambiente);
@@ -69,6 +69,7 @@ namespace PixNET.Services.Pix
             banco.SetCredentials(credentials);
             banco.SetCertificateFile(certificate, password);
             banco.SetHasTxId(hasTxId);
+            banco.SetTimeout(timeOut);
         }
 
         public PIX(ProvedorToken psp, Banco banco)
