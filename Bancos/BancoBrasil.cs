@@ -10,25 +10,50 @@ namespace PixNET.Services.Pix.Bancos
 {
     public class BancoBrasil : Banco
     {
-        public BancoBrasil(PixAmbiente? ambiente)
+        public BancoBrasil(PixAmbiente? ambiente, byte[]? certificate = null, string? password = null)
         {
-            endpoint = new Endpoint
+            if (certificate is not null && certificate.Length > 0)
+                SetCertificateFile(certificate, password);
+
+            string versao = _certificate is null ? "v1" : "v2";
+
+            switch (versao)
             {
-                AuthorizationToken = ambiente == PixAmbiente.Producao ? "https://oauth.bb.com.br/oauth/token" : "https://oauth.sandbox.bb.com.br/oauth/token",
-                Pix = ambiente == PixAmbiente.Producao ? "https://api.bb.com.br/pix/v1/" : "https://api.sandbox.bb.com.br/pix/v1/"
-            };
+                case "v1":
+                    {
+                        endpoint = new Endpoint
+                        {
+                            AuthorizationToken = ambiente == PixAmbiente.Producao ? "https://oauth.bb.com.br/oauth/token" : "https://oauth.sandbox.bb.com.br/oauth/token",
+                            Pix = ambiente == PixAmbiente.Producao ? $"https://api.bb.com.br/pix/v1/" : $"https://api.sandbox.bb.com.br/pix/v1/"
+                        };
+                        break;
+                    }
+                case "v2":
+                    {
+                        endpoint = new Endpoint
+                        {
+                            AuthorizationToken = ambiente == PixAmbiente.Producao ? "https://oauth.bb.com.br/oauth/token" : "https://oauth.sandbox.bb.com.br/oauth/token",
+                            Pix = ambiente == PixAmbiente.Producao ? $"https://api-pix.bb.com.br/pix/v2/" : $"https://api-pix.hm.bb.com.br/pix/v2/"
+                        };
+                        break;
+                    }
+            }
         }
 
         public override async Task GetAccessTokenAsync(bool force = false)
         {
+            if (_credentials is null || String.IsNullOrEmpty(_credentials?.clientId) || String.IsNullOrEmpty(_credentials?.clientSecret))
+                return;
 
-            string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write";
-            List<string> headers = new List<string>();
-
-            headers.Add(string.Format("Authorization: Basic {0}", Utils.Base64Encode(_credentials.clientId + ":" + _credentials.clientSecret)));
+            string parameters = $"grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write cobv.read cobv.write&gw-dev-app-key={_credentials.developerKey}";
+            List<string> headers = new()
+            {
+                string.Format("Authorization: Basic {0}", Utils.Base64Encode(_credentials.clientId + ":" + _credentials.clientSecret))
+            };
             headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
+
             string
-                request = await Utils.sendRequestAsync(endpoint.AuthorizationToken, parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate);
+                request = await Utils.sendRequestAsync($"{endpoint.AuthorizationToken}?gw-dev-app-key={_credentials.developerKey}", parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate, 0, cancellationToken, SecurityProtocolType.Tls12).ConfigureAwait(false);
 
             try
             {
@@ -41,16 +66,20 @@ namespace PixNET.Services.Pix.Bancos
 
         public override void GetAccessToken(bool force = false)
         {
-            string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write";
-            List<string> headers = new List<string>();
+            if (_credentials is null || String.IsNullOrEmpty(_credentials?.clientId) || String.IsNullOrEmpty(_credentials?.clientSecret))
+                return;
 
+            string parameters = $"grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write&gw-dev-app-key={_credentials.developerKey}";
+            List<string> headers = new()
+            {
+                string.Format("Authorization: Basic {0}", Utils.Base64Encode(_credentials.clientId + ":" + _credentials.clientSecret))
+            };
             headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
-            headers.Add(string.Format("Authorization: Basic {0}", Utils.Base64Encode(_credentials.clientId + ":" + _credentials.clientSecret)));
-            parameters += $"client_id={_credentials.clientId}&client_secret={_credentials.clientSecret}";
 
+            parameters += $"client_id={_credentials.clientId}&client_secret={_credentials.clientSecret}&gw-dev-app-key={_credentials.developerKey}";
 
             string
-                request = Utils.sendRequest(endpoint.AuthorizationToken, parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate);
+                request = Utils.sendRequest($"{endpoint.AuthorizationToken}?gw-dev-app-key={_credentials.developerKey}", parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate, 0, SecurityProtocolType.Tls12);
 
             try
             {
@@ -62,29 +91,60 @@ namespace PixNET.Services.Pix.Bancos
 
         public override async Task<PixPayload> CreateCobrancaAsync()
         {
-            await GetAccessTokenAsync();
-            if (token != null)
+            await GetAccessTokenAsync().ConfigureAwait(false);
+            if (token is not null)
             {
                 string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore
                 });
-                List<string> headers = new List<string>();
+                List<string> headers = new()
+                {
+                    string.Format("Authorization: Bearer {0}", token.access_token),
+                    $"X-Developer-Application-Key: {_credentials.developerKey}"
+                };
+                string? request = null;
 
-                headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
-                headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
-                string request = null;
+                bool isPixCobranca = false;
+                var tipoApi = "cob";
+                if (
+                    ((PixPayload)_payload).valor is not null &&
+                    (
+                        ((PixPayload)_payload).valor.multa is not null ||
+                        ((PixPayload)_payload).valor.juros is not null ||
+                        ((PixPayload)_payload).valor.desconto is not null
+                    )
+                  )
+                    isPixCobranca = true;
+
+                if (isPixCobranca)
+                    tipoApi = "cobv";
+
                 try
                 {
-                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, 0, "application/json", true, _certificate);
+                    request = await Utils.sendRequestAsync($"{endpoint.Pix}{tipoApi}/{((PixPayload)_payload).txid}?gw-dev-app-key={_credentials.developerKey}", parameters, "PUT", headers, 0, "application/json", true, _certificate, 0, cancellationToken, SecurityProtocolType.Tls12).ConfigureAwait(false);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    Model.Errors.BancoBrasil.Errors error = JsonConvert.DeserializeObject<Model.Errors.BancoBrasil.Errors>(ex.Message);
-                    string errors = String.Join(Environment.NewLine, error.erros.Select(T => T.mensagem).ToArray());
-                    throw new Exception(errors);
+                    if (ex.Message.IsJson())
+                    {
+                        Model.Errors.BancoBrasil.Errors? error = JsonConvert.DeserializeObject<Model.Errors.BancoBrasil.Errors>(ex.Message);
+                        if (error is not null && error.erros is not null)
+                        {
+                            string errors = String.Join(Environment.NewLine, error.erros.Select(T => T.mensagem).ToArray());
+                            throw new Exception(errors);
+                        }
+                        else
+                        {
+                            Model.Errors.BancoBrasil.Error? _error = JsonConvert.DeserializeObject<Model.Errors.BancoBrasil.Error>(ex.Message);
+                            throw new Exception(_error.message);
+                        }
+                    }
+                    else
+                        throw;
+
                 }
-                PixPayload cobranca = null;
+                PixPayload? cobranca = null;
 
                 try
                 {
@@ -103,20 +163,20 @@ namespace PixNET.Services.Pix.Bancos
         public override PixPayload CreateCobranca()
         {
             GetAccessToken();
-            if (token != null)
+            if (token is not null)
             {
                 string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore
                 });
-                List<string> headers = new List<string>();
+                List<string> headers = new();
 
                 headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
                 string request = null;
                 try
                 {
-                    request = Utils.sendRequest(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, 0, "application/json", true, _certificate);
+                    request = Utils.sendRequest(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, 0, "application/json", true, _certificate, 0, SecurityProtocolType.Tls12);
                 }
                 catch (Exception ex)
                 {
@@ -143,14 +203,15 @@ namespace PixNET.Services.Pix.Bancos
         }
         public override async Task<PixPayload> ConsultaCobrancaAsync(string txid)
         {
-            await GetAccessTokenAsync();
-            if (token != null)
+            await GetAccessTokenAsync().ConfigureAwait(false);
+            if (token is not null)
             {
-                List<string> headers = new List<string>();
-
+                List<string> headers = new()
+                {
+                    string.Format("Authorization: Bearer {0}", token.access_token)
+                };
                 headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
-                headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
-                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + txid, "", "GET", headers, 0, "", false, _certificate);
+                string request = await Utils.sendRequestAsync($"{endpoint.Pix}cob/{txid}", $"gw-dev-app-key={_credentials.developerKey}", "GET", headers, 0, "", false, _certificate, 0, cancellationToken, SecurityProtocolType.Tls12).ConfigureAwait(false);
                 PixPayload cobranca = null;
                 try
                 {
@@ -165,22 +226,22 @@ namespace PixNET.Services.Pix.Bancos
         }
         public override async Task<PixPayload> CancelarPixAsync()
         {
-            await GetAccessTokenAsync();
-            if (token != null)
+            await GetAccessTokenAsync().ConfigureAwait(false);
+            if (token is not null)
             {
                 ((PixPayload)_payload).status = "REMOVIDA_PELO_USUARIO_RECEBEDOR";
                 string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore
                 });
-                List<string> headers = new List<string>();
+                List<string> headers = new();
 
                 headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
                 string request = null;
                 try
                 {
-                    request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate);
+                    request = await Utils.sendRequestAsync($"{endpoint.Pix}cob/{((PixPayload)_payload).txid}?gw-dev-app-key={_credentials.developerKey}", parameters, "PATCH", headers, 0, "application/json", true, _certificate, 0, cancellationToken, SecurityProtocolType.Tls12).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -206,22 +267,23 @@ namespace PixNET.Services.Pix.Bancos
         }
         public override async Task<List<Model.Pix>> ConsultaPixRecebidosAsync()
         {
-            List<Model.Pix> listaPix = new List<Model.Pix>();
+            List<Model.Pix> listaPix = new();
 
             try
             {
-                await GetAccessTokenAsync();
-                if (token != null)
+                await GetAccessTokenAsync().ConfigureAwait(false);
+                if (token is not null)
                 {
                     string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                     {
                         NullValueHandling = NullValueHandling.Ignore
                     });
 
-                    List<string> headers = new List<string>();
-
+                    List<string> headers = new()
+                    {
+                        string.Format("Authorization: Bearer {0}", token.access_token)
+                    };
                     headers.Add($"X-Developer-Application-Key: {_credentials.developerKey}");
-                    headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
                     int
                         paginaAtual = 0;
 
@@ -232,16 +294,20 @@ namespace PixNET.Services.Pix.Bancos
                     PixRecebidos cobranca = null;
                     while (loop)
                     {
-                        string queryString = string.Format
-                            (
-                                "txIdPresente=true&inicio={0}&fim={1}&paginaAtual={2}&paginacao.paginaAtual={2}",
-                                ((PixRecebidosPayload)_payload).inicio.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                                ((PixRecebidosPayload)_payload).fim.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                                paginaAtual
-                            );
-                        request = await Utils.sendRequestAsync(endpoint.Pix + "pix?" + queryString, null, "GET", headers, 0, "application/json", false, _certificate);
+                        await Task.Delay(100);
+
                         try
                         {
+                            string queryString = string.Format
+                            (
+                                "gw-dev-app-key={3}&txIdPresente=true&inicio={0}&fim={1}&paginaAtual={2}&paginacao.paginaAtual={2}",
+                                ((PixRecebidosPayload)_payload).inicio.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                                ((PixRecebidosPayload)_payload).fim.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                                paginaAtual,
+                                _credentials.developerKey
+                            );
+                            request = await Utils.sendRequestAsync($"{endpoint.Pix}pix", queryString, "GET", headers, 0, "application/json", false, _certificate, 0, cancellationToken, SecurityProtocolType.Tls12).ConfigureAwait(false);
+
                             cobranca = JsonConvert.DeserializeObject<PixRecebidos>(request);
                             if (hasTxId)
                                 listaPix.AddRange(cobranca.pix.Where(T => !String.IsNullOrEmpty(T.txid)));
@@ -266,6 +332,7 @@ namespace PixNET.Services.Pix.Bancos
                             loop = false;
                             break;
                         }
+
                     }
 
                     return listaPix;
@@ -278,9 +345,9 @@ namespace PixNET.Services.Pix.Bancos
                 try
                 {
                     PixError er = JsonConvert.DeserializeObject<PixError>(ex.Message);
-                    if (er != null)
+                    if (er is not null)
                     {
-                        if (er.erros.Find(T => T.codigo == "4769515") != null)
+                        if (er.erros.Find(T => T.codigo == "4769515") is not null)
                             return listaPix;
                     }
                 }

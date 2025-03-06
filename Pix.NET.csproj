@@ -1,7 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+
+    <TargetFramework>net7.0-windows</TargetFramework>
     <Authors>Eduardo Carvalho Costa</Authors>
     <Company>Quality Systems</Company>
     <Product>$(AssemblyName) Lib</Product>
@@ -10,24 +11,23 @@
     <PackageId>Qualitysys.Pix.NET</PackageId>
     <Copyright>Todos os direitos reservados.</Copyright>
     <PackageProjectUrl>https://qualitysys.com.br</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/duduccosta/Pix.NET</RepositoryUrl>
     <PackageTags>pix</PackageTags>
     <NeutralLanguage>pt-BR</NeutralLanguage>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Version>1.0.3</Version>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <None Remove="README.md" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Newtonsoft.Json.Schema" Version="3.0.15" />
   </ItemGroup>
 
 </Project>

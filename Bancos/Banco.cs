@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PixNET.Services.Pix.Bancos
@@ -13,24 +14,42 @@ namespace PixNET.Services.Pix.Bancos
     public class Banco : IBanco
     {
 
-        internal object _payload = null;
-        internal Credentials _credentials = null;
-        internal Endpoint endpoint = null;
+        internal object? _payload = null;
+        internal Credentials? _credentials = null;
+        internal Endpoint? endpoint = null;
         internal ProvedorToken _psp;
-        internal AccessToken token = null;
-        internal X509Certificate2Collection _certificate = null;
-        internal string nomeRazaoSocial = null;
-        internal string cidade = null;
+        internal AccessToken? token = null;
+        internal X509Certificate2Collection? _certificate = null;
+        internal string? nomeRazaoSocial = null;
+        internal string? cidade = null;
         internal bool hasTxId = false;
         internal int timeOut = 0;
+        private CancellationToken? m_CancellationToken;
+
+        internal CancellationToken? cancellationToken
+        {
+            get
+            {
+                return m_CancellationToken ?? CancellationToken.None;
+            }
+            set
+            {
+                m_CancellationToken = value ?? CancellationToken.None;
+            }
+        }
+
         public virtual async Task<PixPayload> ConsultaCobrancaAsync(string txid)
         {
-            await GetAccessTokenAsync();
-            if (token != null)
+            await GetAccessTokenAsync().ConfigureAwait(false);
+            if (token is not null)
             {
-                List<string> headers = new List<string>();
+                List<string> headers = new();
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
-                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + txid, "", "GET", headers, 0, "", false, _certificate);
+                string request = await Utils.sendRequestAsync(endpoint.Pix + $"cob/" + txid, "", "GET", headers, 0, "", false, _certificate, 0, cancellationToken).ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(request))
+                    request = await Utils.sendRequestAsync(endpoint.Pix + "cobv/" + txid, "", "GET", headers, 0, "", false, _certificate, 0, cancellationToken).ConfigureAwait(false);
+
                 PixPayload cobranca = null;
                 try
                 {
@@ -43,12 +62,17 @@ namespace PixNET.Services.Pix.Bancos
             }
             return null;
         }
+
+        public virtual void SetCancellationToken(CancellationToken? cancellationToken = null)
+        {
+            this.cancellationToken = cancellationToken;
+        }
         public virtual PixPayload ConsultaCobranca(string txid)
         {
             GetAccessToken();
-            if (token != null)
+            if (token is not null)
             {
-                List<string> headers = new List<string>();
+                List<string> headers = new();
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
                 string request = Utils.sendRequest(endpoint.Pix + "cob/" + txid, "", "GET", headers, 0, "", false, _certificate);
                 PixPayload cobranca = null;
@@ -65,19 +89,19 @@ namespace PixNET.Services.Pix.Bancos
         }
         public virtual async Task<List<Model.Pix>> ConsultaPixRecebidosAsync()
         {
-            List<Model.Pix> listaPix = new List<Model.Pix>();
+            List<Model.Pix> listaPix = new();
 
             try
             {
-                await GetAccessTokenAsync();
-                if (token != null)
+                await GetAccessTokenAsync().ConfigureAwait(false);
+                if (token is not null)
                 {
                     string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                     {
                         NullValueHandling = NullValueHandling.Ignore
                     });
 
-                    List<string> headers = new List<string>();
+                    List<string> headers = new();
                     headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
                     int
                         paginaAtual = 0;
@@ -89,16 +113,19 @@ namespace PixNET.Services.Pix.Bancos
                     PixRecebidos cobranca = null;
                     while (loop)
                     {
-                        string queryString = string.Format
+                        await Task.Delay(100);
+
+                        try
+                        {
+                            string queryString = string.Format
                             (
                                 "inicio={0}&fim={1}&paginaAtual={2}&paginacao.paginaAtual={2}",
                                 ((PixRecebidosPayload)_payload).inicio.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                                 ((PixRecebidosPayload)_payload).fim.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                                 paginaAtual
                             );
-                        request = await Utils.sendRequestAsync(endpoint.Pix + "pix?" + queryString, null, "GET", headers, this.timeOut, "application/json", false, _certificate);
-                        try
-                        {
+                            request = await Utils.sendRequestAsync(endpoint.Pix + "pix?" + queryString, null, "GET", headers, timeOut, "application/json", true, _certificate, 0, cancellationToken).ConfigureAwait(false);
+
                             cobranca = JsonConvert.DeserializeObject<PixRecebidos>(request);
                             if (hasTxId)
                                 listaPix.AddRange(cobranca.pix.Where(T => !String.IsNullOrEmpty(T.txid)));
@@ -135,9 +162,9 @@ namespace PixNET.Services.Pix.Bancos
                 try
                 {
                     PixError er = JsonConvert.DeserializeObject<PixError>(ex.Message);
-                    if (er != null)
+                    if (er is not null)
                     {
-                        if (er.erros.Find(T => T.codigo == "4769515") != null)
+                        if (er.erros.Find(T => T.codigo == "4769515") is not null)
                             return listaPix;
                     }
                 }
@@ -148,19 +175,19 @@ namespace PixNET.Services.Pix.Bancos
 
         public virtual List<Model.Pix> ConsultaPixRecebidos()
         {
-            List<Model.Pix> listaPix = new List<Model.Pix>();
+            List<Model.Pix> listaPix = new();
 
             try
             {
                 GetAccessToken();
-                if (token != null)
+                if (token is not null)
                 {
                     string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                     {
                         NullValueHandling = NullValueHandling.Ignore
                     });
 
-                    List<string> headers = new List<string>();
+                    List<string> headers = new();
                     headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
                     int
                         paginaAtual = 0;
@@ -215,9 +242,9 @@ namespace PixNET.Services.Pix.Bancos
                 try
                 {
                     PixError er = JsonConvert.DeserializeObject<PixError>(ex.Message);
-                    if (er != null)
+                    if (er is not null)
                     {
-                        if (er.erros.Find(T => T.codigo == "4769515") != null)
+                        if (er.erros.Find(T => T.codigo == "4769515") is not null)
                             return listaPix;
                     }
                 }
@@ -228,13 +255,13 @@ namespace PixNET.Services.Pix.Bancos
         public virtual PixPayload CreateCobranca()
         {
             GetAccessToken();
-            if (token != null)
+            if (token is not null)
             {
                 string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore
                 });
-                List<string> headers = new List<string>();
+                List<string> headers = new();
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
                 string request = Utils.sendRequest(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, 0, "application/json", true, _certificate);
                 PixPayload cobranca = null;
@@ -255,16 +282,32 @@ namespace PixNET.Services.Pix.Bancos
         }
         public virtual async Task<PixPayload> CreateCobrancaAsync()
         {
-            await GetAccessTokenAsync();
-            if (token != null)
+            await GetAccessTokenAsync().ConfigureAwait(false);
+            if (token is not null)
             {
                 string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore
                 });
-                List<string> headers = new List<string>();
+                List<string> headers = new();
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
-                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, 0, "application/json", true, _certificate);
+
+                bool isPixCobranca = false;
+                var tipoApi = "cob";
+                if (
+                    ((PixPayload)_payload).valor is not null &&
+                    (
+                        ((PixPayload)_payload).valor.multa is not null ||
+                        ((PixPayload)_payload).valor.juros is not null ||
+                        ((PixPayload)_payload).valor.desconto is not null
+                    )
+                  )
+                    isPixCobranca = true;
+
+                if (isPixCobranca)
+                    tipoApi = "cobv";
+
+                string request = await Utils.sendRequestAsync(endpoint.Pix + $"{tipoApi}/" + ((PixPayload)_payload).txid, parameters, "PUT", headers, 0, "application/json", true, _certificate, 0, cancellationToken).ConfigureAwait(false);
                 PixPayload cobranca = null;
 
                 try
@@ -283,16 +326,16 @@ namespace PixNET.Services.Pix.Bancos
         }
         public virtual async Task<PixDevolucao> DevolverPixAsync()
         {
-            await GetAccessTokenAsync();
-            if (token != null)
+            await GetAccessTokenAsync().ConfigureAwait(false);
+            if (token is not null)
             {
                 string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore
                 });
-                List<string> headers = new List<string>();
+                List<string> headers = new();
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
-                string request = await Utils.sendRequestAsync(endpoint.Pix + $"pix/{((PixDevolucaoPayload)_payload).e2eid}/devolucao/{((PixDevolucaoPayload)_payload).id}", parameters, "PUT", headers, 0, "application/json", true, _certificate);
+                string request = await Utils.sendRequestAsync(endpoint.Pix + $"pix/{((PixDevolucaoPayload)_payload).e2eid}/devolucao/{((PixDevolucaoPayload)_payload).id}", parameters, "PUT", headers, 0, "application/json", true, _certificate, 0, cancellationToken).ConfigureAwait(false);
                 PixDevolucao devolucao = null;
 
                 try
@@ -311,17 +354,17 @@ namespace PixNET.Services.Pix.Bancos
         public virtual async Task<PixPayload> CancelarPixAsync()
         {
             //REMOVIDA_PELO_USUARIO_RECEBEDOR
-            await GetAccessTokenAsync();
-            if (token != null)
+            await GetAccessTokenAsync().ConfigureAwait(false);
+            if (token is not null)
             {
                 ((PixPayload)_payload).status = "REMOVIDA_PELO_USUARIO_RECEBEDOR";
                 string parameters = JsonConvert.SerializeObject(_payload, Formatting.None, new JsonSerializerSettings
                 {
                     NullValueHandling = NullValueHandling.Ignore
                 });
-                List<string> headers = new List<string>();
+                List<string> headers = new();
                 headers.Add(string.Format("Authorization: Bearer {0}", token.access_token));
-                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate);
+                string request = await Utils.sendRequestAsync(endpoint.Pix + "cob/" + ((PixPayload)_payload).txid, parameters, "PATCH", headers, 0, "application/json", true, _certificate, 0, cancellationToken).ConfigureAwait(false);
                 PixPayload cobranca = null;
 
                 try
@@ -340,8 +383,10 @@ namespace PixNET.Services.Pix.Bancos
         }
         public virtual void GetAccessToken(bool force = false)
         {
-            string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write";
-            List<string> headers = new List<string>();
+            if (_credentials is null || String.IsNullOrEmpty(_credentials?.clientId) || String.IsNullOrEmpty(_credentials?.clientSecret))
+                return;
+            string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write cobv.write cobv.read";
+            List<string> headers = new();
 
             headers.Add(string.Format("Authorization: Basic {0}", Utils.Base64Encode(_credentials.clientId + ":" + _credentials.clientSecret)));
             parameters += $"&client_id={_credentials.clientId}&client_secret={_credentials.clientSecret}";
@@ -358,17 +403,19 @@ namespace PixNET.Services.Pix.Bancos
         }
         public virtual async Task GetAccessTokenAsync(bool force = false)
         {
-            string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write";
-            List<string> headers = new List<string>();
+            if (_credentials is null || String.IsNullOrEmpty(_credentials?.clientId) || String.IsNullOrEmpty(_credentials?.clientSecret))
+                return;
+
+            string parameters = "grant_type=client_credentials&scope=cob.read cob.write pix.read pix.write cobv.write cobv.read";
+            List<string> headers = new();
             headers.Add(string.Format("Authorization: Basic {0}", Utils.Base64Encode(_credentials.clientId + ":" + _credentials.clientSecret)));
             parameters += $"&client_id={_credentials.clientId}&client_secret={_credentials.clientSecret}";
 
-
-            string
-                request = await Utils.sendRequestAsync(endpoint.AuthorizationToken, parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate);
-
             try
             {
+                string
+                request = await Utils.sendRequestAsync(endpoint.AuthorizationToken, parameters, "POST", headers, 0, "application/x-www-form-urlencoded", true, _certificate, 0, cancellationToken).ConfigureAwait(false);
+
                 token = JsonConvert.DeserializeObject<AccessToken>(request);
                 token.lastTokenTime = DateTime.Now;
             }
@@ -376,7 +423,13 @@ namespace PixNET.Services.Pix.Bancos
         }
         public string GerarQrCode(PixPayload cobranca)
         {
-            StringBuilder payloadQrCode = new StringBuilder();
+            if (String.IsNullOrEmpty(cobranca.location))
+                return null;
+
+            if (String.IsNullOrEmpty(cidade))
+                cidade = "CIDADE";
+
+            StringBuilder payloadQrCode = new();
             payloadQrCode.Append("000201");
             payloadQrCode.Append("010212");
             payloadQrCode.Append($"26{22 + cobranca.location.Length}");
@@ -409,9 +462,15 @@ namespace PixNET.Services.Pix.Bancos
         {
             try
             {
-                X509Certificate2Collection certificates = new X509Certificate2Collection();
+                X509Certificate2Collection certificates = new();
                 certificates.Import(certificateFile, password, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet);
                 _certificate = certificates;
+                if (certificates is not null && certificates.Count > 0)
+                {
+                    var cert = certificates.LastOrDefault();
+                    if (cert is not null && cert.NotAfter < DateTime.Now)
+                        throw new Exception("Certificado digital vencido!");
+                }
             }
             catch
             {
@@ -422,9 +481,16 @@ namespace PixNET.Services.Pix.Bancos
         {
             try
             {
-                X509Certificate2Collection certificates = new X509Certificate2Collection();
+                X509Certificate2Collection certificates = new();
                 certificates.Import(certificate, password, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet);
                 _certificate = certificates;
+
+                if (certificates is not null && certificates.Count > 0)
+                {
+                    var cert = certificates.LastOrDefault();
+                    if (cert is not null && cert.NotAfter < DateTime.Now)
+                        throw new Exception("Certificado digital vencido!");
+                }
             }
             catch
             {
@@ -462,7 +528,7 @@ namespace PixNET.Services.Pix.Bancos
 
         public void SetTimeout(int timeout)
         {
-            this.timeOut = timeout;
+            timeOut = timeout;
         }
         public void SetHasTxId(bool hasTxId)
         {

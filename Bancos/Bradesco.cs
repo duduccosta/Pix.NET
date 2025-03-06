@@ -1,9 +1,4 @@
-﻿using Newtonsoft.Json;
-using PixNET.Model;
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
+﻿using PixNET.Model;
 
 namespace PixNET.Services.Pix.Bancos
 {

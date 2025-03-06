@@ -1,5 +1,6 @@
 ﻿using PixNET.Model;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PixNET.Services.Pix.Bancos
@@ -15,6 +16,7 @@ namespace PixNET.Services.Pix.Bancos
         void GetAccessToken(bool force = false);
         void SetNomeRazaoSocial(string nome);
         void SetCidade(string cidade);
+        void SetCancellationToken(CancellationToken? cancellationToken = null);
         PixPayload CreateCobranca();
         Task<PixPayload> CreateCobrancaAsync();
         Task<PixPayload> CancelarPixAsync();

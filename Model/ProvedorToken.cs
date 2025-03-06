@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace PixNET.Model
+﻿namespace PixNET.Model
 {
     public enum ProvedorToken
     {
@@ -15,5 +9,6 @@ namespace PixNET.Model
         Santander = 33,
         BancoBrasil = 1,
         CaixaCEF = 104,
+        SICREDI = 748
     }
 }
