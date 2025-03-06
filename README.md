@@ -11,8 +11,7 @@ Baseada em .NETStandard 2.0 para que possa funcionar com qualquer versão do .NE
  - [x] Itaú (Homologação e Produção)  
  - [x] Sicoob (Homologação e Produção)   
  - [x] Bradesco (Homologação e Produção)    
- - [x] Sicredi (Homologação e Produção)     
- - [x] Caixa CEF (Homologação e Produção)  
+ - [x] Sicredi (Homologação e Produção) 
 
 # Como Utilizar
 A primeira coisa que deve-se atentar, é sobre a classe ***Model.ProvedorToken***.
@@ -25,7 +24,6 @@ Esta classe é do tipo **enum**, representando os bancos disponíveis com seus r
 > - Itau = 341,
 > - Bradesco = 237
 > - Sicredi = 748
-> - Caixa CEF = 104
 
 ## 1. Para iniciar o fluxo do código, precisamos definir qual banco será utilizado:
 
